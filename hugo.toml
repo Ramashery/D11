@@ -8,7 +8,7 @@ disableKinds = ["taxonomy", "term", "RSS"]
 # ---- структура URL: /en, /en/works, /en/works/case — без слэша на конце
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
-uglyURLs = true              # файлы dir.html; ссылки печатаются без ".html" (partials/_url.html, _rurl.html)
+uglyURLs = false              # файлы dir.html; ссылки печатаются без ".html" (partials/_url.html, _rurl.html)
 
 [languages]
   [languages.en]
