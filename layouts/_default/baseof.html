@@ -1,0 +1,25 @@
+{{- /* Единственная обёртка всех страниц. Тип страницы (home, works, case, services, offer, insights, post, about) определяется ниже по разделу и виду страницы;
+       шаблон — partials/tpl_<тип>.html (его вызывает partials/_tpl.html).
+       От него зависят классы <html>/<body> и подключаемые assets/css/<тип>.css и assets/js/<тип>.js */ -}}
+{{- $kind := "page" -}}
+{{- if .IsHome }}{{ $kind = "home" }}
+{{- else if eq .Section "works" }}{{ $kind = cond (eq .Kind "section") "works" "case" }}
+{{- else if eq .Section "services" }}{{ $kind = cond (eq .Kind "section") "services" "offer" }}
+{{- else if eq .Section "insights" }}{{ $kind = cond (eq .Kind "section") "insights" "post" }}
+{{- else if and .File (eq .File.ContentBaseName "about") }}{{ $kind = "about" }}
+{{- end -}}
+{{- .Store.Set "kind" $kind -}}
+{{- $cls := cond (eq $kind "home") "is-home" (printf "is-inner is-%s" $kind) -}}
+<!DOCTYPE html>
+<html lang="{{ .Language.Lang }}"{{ if ne $kind "home" }} class="{{ $cls }}"{{ end }}>
+<head>
+{{ partial "_head.html" . }}
+</head>
+<body class="{{ $cls }}"{{ if ne $kind "home" }} id="top"{{ end }}>
+{{ partial "_header.html" . }}
+{{ block "main" . }}{{ end }}
+{{- /* форма заявки — строго вне #scroll-container (там position:fixed ломается из-за transform) */}}
+{{ if ne $kind "works" }}{{ partial "_lead_form.html" . }}{{ end }}
+{{ partial "_scripts.html" . }}
+</body>
+</html>
