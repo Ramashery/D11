@@ -1,0 +1,9 @@
+<main id="main" class="page page--about">
+  <header class="page__head">
+    <h1 class="page__title">{{ .Title }}</h1>
+    {{ with .Description }}<p class="page__lead">{{ . }}</p>{{ end }}
+  </header>
+  {{- /* TODO(дизайн): страница About */}}
+  <div class="page__content">{{ .Content }}</div>
+</main>
+{{ partial "_footer.html" . }}

@@ -1,0 +1,4 @@
+{{- /* Подключает шаблон страницы partials/tpl_<тип>.html; тип посчитан в baseof.html */ -}}
+{{- $name := printf "tpl_%s.html" (.Store.Get "kind") -}}
+{{ if templates.Exists (printf "partials/%s" $name) }}{{ partial $name . }}
+{{ else }}<main id="main" class="page"><h1 class="page__title">{{ .Title }}</h1><div class="page__content">{{ .Content }}</div></main>{{ end }}

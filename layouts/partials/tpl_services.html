@@ -1,0 +1,13 @@
+<main id="main" class="page page--services">
+  <header class="page__head">
+    <h1 class="page__title">{{ .Title }}</h1>
+    {{ with .Description }}<p class="page__lead">{{ . }}</p>{{ end }}
+  </header>
+  {{ with .Content }}<div class="page__content">{{ . }}</div>{{ end }}
+  {{- /* TODO(дизайн): каталог услуг */}}
+  <ul class="page__list">
+    {{ range .Pages }}<li><a href="{{ partial "_rurl.html" . }}">{{ .Title }}</a></li>
+    {{ end }}
+  </ul>
+</main>
+{{ partial "_footer.html" . }}
