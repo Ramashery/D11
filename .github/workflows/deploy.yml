@@ -44,17 +44,19 @@ jobs:
       - name: Hugo
         run: hugo --minify --baseURL "${{ steps.pages.outputs.base_url }}/" -d _site
 
-      - name: Диагностика сборки
-        run: |
-          echo "--- aliases в контенте ---"
-          grep -rn "aliases" content hugo.toml || echo "нет"
-          echo "--- размер главной ---"
-          wc -c _site/en/index.html _site/en/works.html 2>&1 || true
-          echo "--- начало главной ---"
-          head -c 300 _site/en/index.html
+       "${{ steps.pages.outputs.base_path }}" "en ka ru" en
 
       - name: URL без слэша на конце
         run: bash scripts/postbuild.sh _site "${{ steps.pages.outputs.base_path }}" "en ka ru" en
+
+      - name: Диагностика сборки
+        run: |
+          echo "--- файлы ---"
+          ls -la _site _site/en | head -40
+          echo "--- размеры ---"
+          wc -c _site/en/index.html _site/en.html _site/en/works.html _site/en/works/atlas-studio.html 2>&1
+          echo "--- начало главной ---"
+          head -c 300 _site/en.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
