@@ -1,0 +1,141 @@
+/* Страница кейса (/works/<slug>/).
+   Композиция — из референса Koto: боковая колонка с названием и содержанием, секции на сетке 12 колонок,
+   ряды медиа 16:9 и пары 4:5. Палитра, шрифты, хедер, футер и скролл — как на главной сайте.
+   Подключается только на страницах кейсов (см. partials/head.html). Движок: assets/js/case.js */
+
+/* нативная прокрутка отключена — страницей управляет тяжёлый скролл (как на главной) */
+html.is-case, html.is-case body{ height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg, #000); }
+html.is-case body{ display: block; min-height: 0; }
+
+#scroll-container{ position: fixed; top: 0; left: 0; width: 100%; will-change: transform; }
+
+/* Типографика — из референса: шрифт Inter, жирность 700, трекинг −0.04em, межстрочный 1,
+   белый #fafafa, второстепенный #757575, линии #2e2e2e. Размеры — max(px, vw), как в референсе. */
+.case, .case-side{
+  --c-ink: #fafafa; --c-dim: #757575; --c-line: #2e2e2e;
+  --t-label: max(13px, .9vw);     /* подписи, теги, «назад» */
+  --t-body:  max(16px, 1.11vw);   /* описание, пункты, метки секций */
+  --t-lead:  max(20px, 1.39vw);   /* основной текст секций */
+  --t-stat:  max(32px, 2.22vw);   /* заголовок первой секции */
+  --t-sub:   max(48px, 3.33vw);   /* подзаголовок */
+  --t-h1:    max(104px, 7.22vw);  /* заголовок кейса */
+  --line: var(--c-line); --ink-dim: var(--c-dim);
+  color: var(--c-ink); font-family: var(--display, 'Inter', sans-serif);
+  font-weight: 700; letter-spacing: -.04em; line-height: 1;
+}
+.case{
+  --side: clamp(220px, 20vw, 300px);          /* ширина боковой колонки */
+  --gap: 16px;
+  --r: 6px;                                   /* радиус медиа */
+  --bar: 66px;                                /* высота верхней панели сайта (.mn-nav) */
+}
+.case a, .case-side a{ text-decoration: none; }
+
+.case__layout{ display: flex; align-items: flex-start; gap: var(--gap); padding: 0 var(--gutter); }
+.case__spacer{ display: none; flex: none; width: var(--side); }
+.case__content{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: calc(var(--bar) + 16px) 0 40px; }
+@media (min-width: 900px){ .case__spacer{ display: block; } }
+
+/* ---------- заголовок кейса: название, подзаголовок, description, теги ---------- */
+.case__titleblock{ display: flex; flex-direction: column; gap: max(16px, 1.11vw); padding: 24px 0 32px; }
+.case__h1{ margin: 0; font-size: clamp(44px, 13vw, 72px); font-weight: 700; line-height: .95; letter-spacing: -.04em; }
+.case__sub{ margin: 0; font-size: clamp(24px, 6.5vw, 36px); font-weight: 700; line-height: .98; letter-spacing: -.04em; }
+.case__desc{ margin: 0; max-width: 36em; font-size: var(--t-body); font-weight: 700; line-height: 1; letter-spacing: -.04em; }
+.case__tags{
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  font-size: var(--t-label); font-weight: 700; line-height: 1; letter-spacing: -.04em; color: var(--c-dim);
+}
+.case__tags i{ width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+@media (min-width: 900px){
+  .case__titleblock{ gap: max(20px, 1.67vw); padding: max(24px, 1.67vw) 0 max(32px, 2.22vw); }
+  .case__h1{ font-size: var(--t-h1); max-width: max(694px, 48.19vw); }
+  .case__sub{ font-size: var(--t-sub); max-width: max(450px, 31.25vw); }
+  .case__desc{ max-width: max(320px, 33vw); }
+}
+
+/* ---------- медиа ---------- */
+.cm{ position: relative; margin: 0; overflow: hidden; border-radius: var(--r); background: #141414; }
+.cm--16-9{ aspect-ratio: 16 / 9; }
+.cm--4-5{ aspect-ratio: 4 / 5; }
+.cm--has-m{ aspect-ratio: 4 / 5; }                                   /* hero на телефоне — вертикальный 4:5 */
+@media (min-width: 640px){ .cm--has-m{ aspect-ratio: 16 / 9; } }
+.cm__frame{ position: absolute; inset: 0; }
+.cm__frame picture{ display: contents; }
+.cm__media{ display: block; width: 100%; height: 100%; object-fit: cover; }
+.case-js .cm__frame{ top: -10%; bottom: -10%; will-change: transform; } /* запас под параллакс, как на главной */
+
+.cm-row, .case__hero{ display: block; }
+.cm-pair{ display: flex; gap: 8px; }
+.cm-pair .cm{ flex: 1 1 0; min-width: 0; }
+
+.cm__toggle{
+  position: absolute; z-index: 2; right: 8px; bottom: 8px; width: 24px; height: 24px; padding: 0;
+  display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(255,255,255,0); color: #fff; cursor: pointer;
+  transition: background-color .17s linear;
+}
+.cm__toggle:hover{ background: rgba(255,255,255,.1); }
+.cm__toggle:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+.cm__toggle svg{ grid-area: 1 / 1; }
+.cm__ico-play{ display: none; }
+.cm__toggle.is-paused .cm__ico-pause{ display: none; }
+.cm__toggle.is-paused .cm__ico-play{ display: block; }
+
+/* ---------- секции: метка слева, текст справа (12 колонок) ---------- */
+.cs{ display: flex; flex-direction: column; gap: 8px; padding: 12px 0 36px; border-top: 1px solid var(--line); }
+.cs__head{ display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 8px; row-gap: 36px; padding-bottom: 12px; }
+.cs__label{
+  grid-column: 1 / 7; margin: 0; padding: 8px 8px 0 24px;
+  font-size: var(--t-body); font-weight: 700; line-height: 1; letter-spacing: -.04em;
+}
+.cs__label--title{                                                     /* первая секция (Challenge) — крупный заголовок */
+  font-size: var(--t-stat); line-height: 1; padding-top: 6px; max-width: 14em;
+}
+.cs__text{ grid-column: 7 / 13; display: flex; flex-direction: column; gap: max(16px, 1.11vw); padding: 8px 24px 0 0; }
+.cs__text p{ margin: 0; max-width: 62ch; font-size: var(--t-lead); font-weight: 700; line-height: 1; letter-spacing: -.04em; color: var(--c-ink); }
+@media (max-width: 899px){
+  .cs__label, .cs__text{ grid-column: 1 / -1; padding-left: 0; padding-right: 0; }
+  .cs__head{ row-gap: 14px; }
+}
+
+/* ---------- следующий кейс ---------- */
+.case-next{
+  display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 8px 16px; margin-top: 16px; padding: 14px 0 0; border-top: 1px solid var(--line);
+  transition: color .25s ease;
+}
+.case-next__label{ grid-column: 1 / -1; font-size: var(--t-label); font-weight: 700; line-height: 1; letter-spacing: -.04em; color: var(--c-dim); }
+.case-next__title{ font-size: max(44px, 7.22vw); font-weight: 700; line-height: .95; letter-spacing: -.04em; }
+.case-next__arrow{ font-size: max(32px, 3.33vw); font-weight: 700; line-height: 1; transition: transform .3s ease; }
+.case-next:hover{ color: var(--accent); }
+.case-next:hover .case-next__arrow{ font-size: max(32px, 3.33vw); font-weight: 700; line-height: 1; transition: transform .3s ease; }
+
+/* ---------- боковая колонка (fixed, вне #scroll-container) ---------- */
+.case-side{
+  position: fixed; z-index: 30; top: 0; left: var(--gutter); width: var(--side, 280px); height: 100vh; height: 100svh;
+  display: none; flex-direction: column; padding: 108px 0 24px; will-change: transform; pointer-events: none;
+}
+.case-side > *{ pointer-events: auto; }
+@media (min-width: 900px){ .case-side{ display: flex; --side: clamp(220px, 20vw, 300px); } }
+.case-side__nav{ display: flex; flex-direction: column; }
+.case-side__nav a{
+  position: relative; padding: 8px 0 8px 18px; font-size: var(--t-body); font-weight: 700; line-height: 1; letter-spacing: -.04em; color: var(--c-dim);
+  transition: color .25s ease;
+}
+.case-side__nav a::before{
+  content: ''; position: absolute; left: 0; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%;
+  background: var(--accent); opacity: 0; transform: scale(.4); transition: opacity .25s ease, transform .25s ease;
+}
+.case-side__nav a:hover{ color: var(--c-ink); }
+.case-side__nav a.is-active{ color: var(--c-ink); }
+.case-side__nav a.is-active::before{ opacity: 1; transform: none; }
+.case-side__back{
+  margin-top: auto; align-self: flex-start; font-size: var(--t-label); font-weight: 700; line-height: 1; letter-spacing: -.04em; color: var(--c-dim); transition: color .25s ease;
+}
+.case-side__back:hover{ color: var(--accent); }
+.case-side a:focus-visible, .case-next:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---------- появление блоков при прокрутке (только если сработал JS) ---------- */
+.case-js .rv{ opacity: 0; transform: translate3d(0, 24px, 0); transition: opacity .9s cubic-bezier(.16, 1, .3, 1), transform .9s cubic-bezier(.16, 1, .3, 1); }
+.case-js .rv.is-in{ opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce){
+  .case-js .rv{ opacity: 1; transform: none; transition: none; }
+}
