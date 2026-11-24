@@ -1,0 +1,189 @@
+{{/* =====================================================================
+   PAGE TRANSITION — единый файл, два типа перехода:
+
+   A) ПРЕЖНИЙ (по механике segerman.dev) — для всех страниц, КРОМЕ offer / case / post
+      • нативные View Transitions (Chrome/Edge 126+, Safari 18.2+; в остальных — обычная навигация)
+      • новая страница открывается жёсткой маской, поднимающейся снизу (1.2 s, easeInOutQuart),
+        старая линейно затухает в цвет подложки (1 s)
+      • после маски тексты выезжают снизу: data-reveal / .page__title / .page__lead / .page__list li / .page__content > *
+
+   B) НОВЫЙ (по референсу wearekaleida.com) — ТОЛЬКО при переходе на offer / case / post:
+        /<lang>/services/<slug>   /<lang>/works/<slug>   /<lang>/insights/<slug>
+      (список — регулярное выражение TARGET в скрипте)
+      1) ЗАКРЫТИЕ на старой странице (0.6 s, cubic-bezier(.22,.31,0,1)): фон #0e0e0e проявляется, чёрные полосы-«жалюзи»
+         (20 по 5% высоты; на телефоне 6 по 1/6) вырастают от нижней кромки (scaleY 0 → 1). Затем обычная навигация.
+      2) ОТКРЫТИЕ на новой странице (после клика, а также при возврате кнопкой «назад/вперёд» — тогда закрытия нет, играет только открытие): экран уже закрыт; после готовности страницы (0.35–0.8 s) через 0.3 s полосы
+         сворачиваются к верхней кромке (0.9 s); тексты выезжают сразу за этим.
+
+   Как они не мешают друг другу: View Transition пропускается (skipTransition в pageswap / pagereveal),
+   если старая ИЛИ новая страница — offer / case / post. Переход с кейса на любую обычную страницу идёт по типу A.
+
+   Настройки (:root ниже):  --pt-slow: 3 — замедлить оба перехода в 3 раза (отладка);  --pt-veil — цвет подложки типа A.
+   Из JS: window.PageTransition.go(url).  Отключить ссылку: <a data-no-transition>.
+   ===================================================================== */}}
+<style id="pt-css">
+/* ===== A) ПРЕЖНИЙ ПЕРЕХОД: маска снизу + выезд текстов ===== */
+:root{--pt-veil:#0a0f1a}
+@media (prefers-reduced-motion:no-preference){
+  @view-transition{navigation:auto}
+  ::view-transition{background:var(--pt-veil)}
+  ::view-transition-old(root),::view-transition-new(root){mix-blend-mode:normal}
+  ::view-transition-old(root){animation:pt-out calc(1s*var(--pt-slow)) linear both}
+  ::view-transition-new(root){animation:pt-in calc(1.2s*var(--pt-slow)) cubic-bezier(.76,0,.24,1) both}
+}
+@keyframes pt-out{to{opacity:0}}
+@keyframes pt-in{from{clip-path:inset(100% 10% 0 10%)}to{clip-path:inset(0 0 0 0)}}
+
+/* выезд текстов из-под маски */
+html.pt-nav{--pt-in:.68s}
+html.pt-hold{--pt-in:.45s}                                   /* тип B: тексты ждут, пока полосы начнут сворачиваться */
+html.pt-hold [data-rv]>.rv{animation-play-state:paused}
+html.pt-js:not(.pt-ready) :is([data-reveal],.page__title,.page__lead,.page__list li,.page__content>*){visibility:hidden}
+[data-rv]{overflow:hidden;padding-bottom:.12em;margin-bottom:-.12em}
+[data-rv]>.rv{display:block;animation:pt-rise calc(1.2s*var(--pt-slow)) cubic-bezier(.165,.84,.44,1) both;animation-delay:calc((var(--pt-in,.1s) + var(--i,0)*.12s)*var(--pt-slow))}
+@keyframes pt-rise{from{transform:translateY(110%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){[data-rv]>.rv{animation:none}}
+
+/* ===== B) НОВЫЙ ПЕРЕХОД (offer / case / post): полосы-«жалюзи» ===== */
+:root{
+  --pt-slow: 1;                         /* множитель длительностей */
+  --pt-bg: 14,14,14;                    /* фон оверлея (rgb) */
+  --pt-ink: #000;                       /* цвет полос */
+  --pt-ease: cubic-bezier(.22,.31,0,1);
+}
+
+/* страница назначения: пока строится оверлей — экран уже закрыт */
+html.pt-arrive::before{ content:""; position:fixed; inset:0; z-index:3000; background:var(--pt-ink); }
+
+.pt{
+  position:fixed; left:0; top:0; width:100%; height:100%; height:100lvh; z-index:3000;
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  background-color:rgba(var(--pt-bg),1); contain:paint;
+}
+.pt.is-on{ display:flex; }
+.pt>span{ display:block; width:100%; height:5%; background:var(--pt-ink); transform:scaleY(1); transform-origin:50% 100%; }
+
+/* телефон: 6 полос (по 1/6 высоты) вместо 20 */
+@media (max-width:768px){
+  .pt>span{ height:calc(100% / 6); }
+  .pt>span:nth-child(n+7){ display:none; }
+}
+
+/* --- ЗАКРЫТИЕ: from → (база = закрыто) --- */
+.pt.is-from{ background-color:rgba(var(--pt-bg),0); }
+.pt.is-from>span{ transform:scaleY(0); }
+.pt.is-cover{ transition:background-color calc(.6s*var(--pt-slow)) var(--pt-ease); }
+.pt.is-cover>span{ transition:transform calc(.6s*var(--pt-slow)) var(--pt-ease); }
+
+/* --- ОТКРЫТИЕ: база (закрыто) → is-go --- */
+.pt.is-reveal{ background-color:transparent; pointer-events:none; }
+.pt.is-reveal>span{ transform-origin:50% 0; transition:transform calc(.9s*var(--pt-slow)) var(--pt-ease) calc(.3s*var(--pt-slow)); }
+.pt.is-reveal.is-go>span{ transform:scaleY(0); }
+
+@media (prefers-reduced-motion:reduce){ .pt, html.pt-arrive::before{ display:none !important; } }
+</style>
+<script>
+(function(w,d){
+  /* страницы, на которые включён НОВЫЙ переход (тип B): кейс, услуга, пост (с любым префиксом пути репозитория) */
+  var TARGET=/\/(?:en|ru|ka)\/(?:works|services|insights)\/[^\/?#]+\/?$/;
+  var KEY='pt-arrive', h=d.documentElement, el=null, busy=false;
+  h.classList.add('pt-js');
+  var reduce=!!(w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function slow(){ var v=parseFloat(getComputedStyle(h).getPropertyValue('--pt-slow')); return v>0?v:1; }
+  function isTarget(u){ return TARGET.test(u.pathname); }
+
+  function build(){                                   /* оверлей создаётся один раз: 20 полос (на телефоне CSS показывает 6) */
+    if(el) return el;
+    var s='',i;
+    for(i=0;i<20;i++) s+='<span></span>';
+    el=d.createElement('div'); el.className='pt'; el.setAttribute('aria-hidden','true'); el.innerHTML=s;
+    d.body.appendChild(el);
+    return el;
+  }
+  function hide(){ if(el) el.className='pt'; }
+
+  /* 1) ЗАКРЫТИЕ → навигация */
+  function go(url){
+    var u; try{ u=new URL(url,location.href); }catch(e){ location.href=url; return; }
+    if(reduce || busy || u.origin!==location.origin || !isTarget(u) || u.pathname===location.pathname){ location.href=u.href; return; }
+    busy=true;
+    var o=build(); o.className='pt is-on is-from';
+    void o.offsetWidth;                               /* зафиксировать стартовое состояние */
+    o.classList.add('is-cover'); o.classList.remove('is-from');
+    setTimeout(function(){
+      try{ sessionStorage.setItem(KEY,'1'); }catch(e){}
+      location.href=u.href;
+    }, 600*slow()+40);
+    setTimeout(function(){ busy=false; hide(); }, 6000);   /* страховка: навигация не состоялась */
+  }
+
+  /* 2) ОТКРЫТИЕ на странице назначения: после клика по ссылке (флаг) ИЛИ при возврате кнопкой «назад/вперёд» */
+  function reveal(){
+    var o=build(), t0=Date.now(), s=slow();
+    o.className='pt is-on is-reveal';                 /* полностью закрыт, как и плашка до него */
+    h.classList.remove('pt-arrive');
+    var fonts=(d.fonts && d.fonts.ready) ? d.fonts.ready : Promise.resolve();
+    Promise.race([fonts, new Promise(function(r){ setTimeout(r,800); })]).then(function(){
+      setTimeout(function(){
+        requestAnimationFrame(function(){
+          o.classList.add('is-go'); h.classList.remove('pt-hold');   /* тексты начинают выезжать */
+          setTimeout(hide, (300+900)*s+80);
+        });
+      }, Math.max(0, 350*s-(Date.now()-t0)));
+    });
+  }
+  var arrive=false, back=false;
+  try{ arrive=sessionStorage.getItem(KEY)==='1'; sessionStorage.removeItem(KEY); }catch(e){}
+  try{ var nv=performance.getEntriesByType('navigation')[0]; back=!!(nv && nv.type==='back_forward'); }catch(e){}
+  if((arrive || back) && !reduce && isTarget(location)){
+    h.classList.add('pt-arrive','pt-hold');
+    setTimeout(function(){ h.classList.remove('pt-arrive','pt-hold'); }, 5000);   /* страховка: экран не останется закрытым */
+    d.addEventListener('DOMContentLoaded',reveal);
+  }
+
+  /* ===== A) ПРЕЖНИЙ ПЕРЕХОД: View Transition + выезд текстов ===== */
+  /* новая страница открыта с переходом (Chrome/Safari) → тексты стартуют на 0.68 s; к целям типа B переход не применяется */
+  w.addEventListener('pagereveal',function(e){
+    if(!e.viewTransition) return;
+    if(isTarget(location)){ try{ e.viewTransition.skipTransition(); }catch(x){} return; }
+    h.classList.add('pt-nav');
+  });
+  w.addEventListener('pageswap',function(e){            /* уходим НА offer/case/post — маску старого типа не играем */
+    var to=e.activation && e.activation.entry && e.activation.entry.url;
+    if(!e.viewTransition || !to) return;
+    try{ if(isTarget(new URL(to))) e.viewTransition.skipTransition(); }catch(x){}
+  });
+  d.addEventListener('DOMContentLoaded',function(){
+    var n=0;
+    [].forEach.call(d.querySelectorAll('[data-reveal],.page__title,.page__lead,.page__list li,.page__content>*'),function(el){
+      if(el.parentElement && el.parentElement.closest('[data-rv]')) return;      /* вложенные не оборачиваем */
+      var m=d.createElement('span'); m.className='rv';
+      while(el.firstChild) m.appendChild(el.firstChild);
+      el.appendChild(m); el.setAttribute('data-rv','');
+      if(!el.style.getPropertyValue('--i')) el.style.setProperty('--i',n);
+      n++;
+    });
+    h.classList.add('pt-ready');
+  });
+
+  /* перехват обычных ссылок на кейс / услугу / пост */
+  d.addEventListener('click',function(e){
+    if(e.defaultPrevented || e.button!==0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a=e.target.closest && e.target.closest('a[href]');
+    if(!a || (a.target && a.target!=='_self') || a.hasAttribute('download') || a.hasAttribute('data-no-transition')) return;
+    var u; try{ u=new URL(a.href,location.href); }catch(x){ return; }
+    if(u.origin!==location.origin || !isTarget(u) || u.pathname===location.pathname) return;
+    e.preventDefault(); go(u.href);
+  });
+
+  /* возврат кнопкой «назад» из кэша браузера: на offer/case/post тоже играет открытие */
+  w.addEventListener('pageshow',function(e){
+    if(!e.persisted) return;                          /* страница восстановлена из bfcache (кнопка «назад/вперёд») */
+    busy=false; h.classList.remove('pt-arrive','pt-hold');
+    if(!reduce && isTarget(location)) reveal(); else hide();
+  });
+
+  w.PageTransition={ go:go, targets:TARGET };
+})(window,document);
+</script>
